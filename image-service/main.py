@@ -9,40 +9,59 @@ from inference import load_face_net, predict_from_bytes
 from utils import download_model
 
 
-# ================= CONFIG =================
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 MODEL_DIR = os.path.join(BASE_DIR, "models")
 os.makedirs(MODEL_DIR, exist_ok=True)
 
-MODEL_PATH = os.path.join(MODEL_DIR, "best_model_v3.pth")
+MODEL_NAME = os.getenv("MODEL_NAME", "best_model_v3.pth")
+MODEL_PATH = os.path.join(MODEL_DIR, MODEL_NAME)
 
-# ✅ YOUR DRIVE MODEL (CORRECT FORMAT)
-MODEL_URL = "https://drive.google.com/uc?id=1xigFpgBhZrlwRn4FWX8LZaf7_Rq5E7G3"
+
+MODEL_URL = os.getenv(
+    "MODEL_URL",
+    "https://drive.google.com/uc?id=1xigFpgBhZrlwRn4FWX8LZaf7_Rq5E7G3"
+)
 
 DETECTOR_DIR = os.path.join(BASE_DIR, "face_detector")
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-# ================= LOAD =================
-print("\n🚀 Starting Image Deepfake Service...\n")
-
-# Download model if missing
-download_model(MODEL_PATH, MODEL_URL)
-
-# Load model
-print("🔄 Loading EfficientNet model...")
-model, threshold = load_model(MODEL_PATH, DEVICE)
-
-# Load face detector
-print("🔄 Loading face detector...")
-face_net = load_face_net(DETECTOR_DIR)
-
-print("✅ Service Ready!\n")
+#  GLOBALS (LAZY LOAD) 
+model = None
+face_net = None
+threshold = None
 
 
-# ================= FASTAPI =================
+#  LAZY LOADER 
+def get_model():
+    global model, face_net, threshold
+
+    if model is None:
+        print("\n🚀 First request → Loading model...\n")
+
+        # Download model if not exists
+        download_model(MODEL_PATH, MODEL_URL)
+
+        # Load model
+        model_loaded, threshold_loaded = load_model(MODEL_PATH, DEVICE)
+
+        # Load face detector
+        face_net_loaded = load_face_net(DETECTOR_DIR)
+
+        # Assign to globals
+        model = model_loaded
+        threshold = threshold_loaded
+        face_net = face_net_loaded
+
+        print(" Model + Detector Loaded Successfully!\n")
+
+    return model, face_net, threshold
+
+
+#  FASTAPI 
 app = FastAPI(title="Deepfake Image Detection API")
 
 app.add_middleware(
@@ -54,7 +73,7 @@ app.add_middleware(
 )
 
 
-# ================= ROUTES =================
+#  ROUTES 
 @app.get("/")
 def root():
     return {
@@ -68,7 +87,8 @@ def root():
 def health():
     return {
         "status": "ok",
-        "device": str(DEVICE)
+        "device": str(DEVICE),
+        "model_loaded": model is not None
     }
 
 
@@ -77,12 +97,15 @@ async def predict(file: UploadFile = File(...)):
     try:
         contents = await file.read()
 
+        # Lazy load
+        model_obj, face_net_obj, threshold_val = get_model()
+
         result = predict_from_bytes(
             image_bytes=contents,
-            model=model,
-            face_net=face_net,
+            model=model_obj,
+            face_net=face_net_obj,
             device=DEVICE,
-            threshold=threshold
+            threshold=threshold_val
         )
 
         return {
