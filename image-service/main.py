@@ -1,5 +1,6 @@
 import os
 import torch
+import threading
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,7 +10,6 @@ from inference import load_face_net, predict_from_bytes
 from utils import download_model
 
 
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 MODEL_DIR = os.path.join(BASE_DIR, "models")
@@ -17,7 +17,6 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 
 MODEL_NAME = os.getenv("MODEL_NAME", "best_model_v3.pth")
 MODEL_PATH = os.path.join(MODEL_DIR, MODEL_NAME)
-
 
 MODEL_URL = os.getenv(
     "MODEL_URL",
@@ -29,40 +28,37 @@ DETECTOR_DIR = os.path.join(BASE_DIR, "face_detector")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-#  GLOBALS (LAZY LOAD) 
 model = None
 face_net = None
 threshold = None
+lock = threading.Lock()
 
 
-#  LAZY LOADER 
 def get_model():
     global model, face_net, threshold
 
     if model is None:
-        print("\n🚀 First request → Loading model...\n")
+        with lock:
+            if model is None:
+                download_model(MODEL_PATH, MODEL_URL)
+                model_loaded, threshold_loaded = load_model(MODEL_PATH, DEVICE)
+                face_net_loaded = load_face_net(DETECTOR_DIR)
 
-        # Download model if not exists
-        download_model(MODEL_PATH, MODEL_URL)
-
-        # Load model
-        model_loaded, threshold_loaded = load_model(MODEL_PATH, DEVICE)
-
-        # Load face detector
-        face_net_loaded = load_face_net(DETECTOR_DIR)
-
-        # Assign to globals
-        model = model_loaded
-        threshold = threshold_loaded
-        face_net = face_net_loaded
-
-        print(" Model + Detector Loaded Successfully!\n")
+                model = model_loaded
+                threshold = threshold_loaded
+                face_net = face_net_loaded
 
     return model, face_net, threshold
 
 
-#  FASTAPI 
-app = FastAPI(title="Deepfake Image Detection API")
+def preload():
+    try:
+        get_model()
+    except Exception:
+        pass
+
+
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -73,14 +69,14 @@ app.add_middleware(
 )
 
 
-#  ROUTES 
+@app.on_event("startup")
+def startup():
+    threading.Thread(target=preload).start()
+
+
 @app.get("/")
 def root():
-    return {
-        "service": "Image Deepfake Detection",
-        "model": "EfficientNet-B4",
-        "status": "running"
-    }
+    return {"status": "running"}
 
 
 @app.get("/health")
@@ -97,15 +93,14 @@ async def predict(file: UploadFile = File(...)):
     try:
         contents = await file.read()
 
-        # Lazy load
         model_obj, face_net_obj, threshold_val = get_model()
 
         result = predict_from_bytes(
-            image_bytes=contents,
-            model=model_obj,
-            face_net=face_net_obj,
-            device=DEVICE,
-            threshold=threshold_val
+            contents,
+            model_obj,
+            face_net_obj,
+            DEVICE,
+            threshold_val
         )
 
         return {
