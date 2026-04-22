@@ -9,3 +9,4 @@ timm
 opencv-python-headless
 numpy
 Pillow
+gdown
