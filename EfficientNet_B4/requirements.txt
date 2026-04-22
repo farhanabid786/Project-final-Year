@@ -1,0 +1,47 @@
+# ============================================================
+# Deepfake Detection API — requirements.txt
+# Python 3.10 / 3.11 / 3.12  (3.10 or 3.11 recommended for stability)
+#
+# STEP 1 — Install PyTorch FIRST (before this file):
+#
+#   CUDA 12.1  (RTX 30xx / 40xx / A-series):
+#     pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+#
+#   CUDA 11.8  (older GPUs):
+#     pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+#
+#   CPU-only:
+#     pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#
+# STEP 2 — Install everything else:
+#     pip install -r requirements.txt
+# ============================================================
+
+# # ── Deep learning ──────────────────────────────────────────
+# timm>=1.0.3
+
+# # ── Computer vision ────────────────────────────────────────
+# opencv-python>=4.9.0
+# Pillow>=10.3.0
+
+# # ── Web framework ──────────────────────────────────────────
+# fastapi>=0.111.0
+# uvicorn[standard]>=0.29.0
+# python-multipart>=0.0.9
+
+# # ── Data ───────────────────────────────────────────────────
+# numpy>=1.26.0
+
+fastapi
+uvicorn[standard]
+python-multipart
+
+torch
+torchvision
+timm
+
+tensorflow
+
+opencv-python
+Pillow
+numpy
