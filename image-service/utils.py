@@ -12,7 +12,6 @@
 
 #         print("✅ Model downloaded successfully")
 
-
 import os
 import requests
 
@@ -23,9 +22,11 @@ def download_model(model_path, url):
     response = requests.get(url, stream=True)
 
     if response.status_code != 200:
-        raise RuntimeError(f"Download failed: {response.status_code}")
+        raise RuntimeError("Model download failed")
 
     with open(model_path, "wb") as f:
-        for chunk in response.iter_content(chunk_size=8192):
+        for chunk in response.iter_content(8192):
+            if chunk:
+                f.write(chunk)
             if chunk:
                 f.write(chunk)
