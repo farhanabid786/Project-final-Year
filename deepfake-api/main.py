@@ -1,29 +1,26 @@
 """
-main.py — Render-ready Deepfake API
+FINAL FastAPI Backend (Render Ready)
 
-✔ Lazy loading (no crash on startup)
-✔ Auto-download models from Google Drive
-✔ Supports:
-   - Image → EfficientNet
-   - Video/Live → TensorFlow
+✔ Download models ONLY ONCE (startup)
+✔ Lazy loading (no reload every request)
+✔ Fast response (no blocking)
+✔ Stable on Render
 """
 
 import os
 import cv2
 import torch
 import numpy as np
+import gdown
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-# Local imports
 from model import load_model, DEFAULT_MODEL_CONFIG
 from inference import load_face_net, predict_from_bytes
 
-import gdown
 
-
-# ================= PATH SETUP =================
+# ================= PATHS =================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 MODEL_DIR = os.path.join(BASE_DIR, "models")
@@ -37,22 +34,22 @@ DETECTOR_DIR = os.path.join(BASE_DIR, "face_detector")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-# ================= GOOGLE DRIVE LINKS =================
+# ================= GOOGLE DRIVE =================
 EFF_URL = "https://drive.google.com/uc?id=1xigFpgBhZrlwRn4FWX8LZaf7_Rq5E7G3"
 TF_URL  = "https://drive.google.com/uc?id=1xwuOR6UsC9bEMoMZgk2slrtXMlrLZYcB"
 
 
-# ================= GLOBAL VARIABLES =================
+# ================= GLOBAL MODELS =================
 eff_model = None
 face_net = None
 threshold = None
 tf_model = None
 
 
-# ================= DOWNLOAD MODELS =================
-def download_models():
+# ================= DOWNLOAD ONCE =================
+def download_models_once():
     if not os.path.exists(EFF_MODEL_PATH):
-        print("⬇️ Downloading EfficientNet model...")
+        print("⬇️ Downloading EfficientNet...")
         gdown.download(EFF_URL, EFF_MODEL_PATH, quiet=False)
 
     if not os.path.exists(TF_MODEL_PATH):
@@ -62,12 +59,11 @@ def download_models():
     print("✅ Models ready")
 
 
-# ================= LAZY LOADERS =================
+# ================= LAZY LOAD =================
 def get_eff_model():
     global eff_model, face_net, threshold
 
     if eff_model is None:
-        download_models()
         print("🔄 Loading EfficientNet...")
         eff_model, threshold = load_model(EFF_MODEL_PATH, DEVICE)
         face_net = load_face_net(DETECTOR_DIR)
@@ -80,8 +76,7 @@ def get_tf_model():
     global tf_model
 
     if tf_model is None:
-        download_models()
-        print("🔄 Loading TensorFlow model...")
+        print("🔄 Loading TensorFlow...")
         from tensorflow.keras.models import load_model
         tf_model = load_model(TF_MODEL_PATH, compile=False)
         print("✅ TensorFlow loaded")
@@ -90,7 +85,7 @@ def get_tf_model():
 
 
 # ================= FASTAPI =================
-app = FastAPI(title="Deepfake Detection API (Render Ready)")
+app = FastAPI(title="Deepfake Detection API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -101,17 +96,17 @@ app.add_middleware(
 )
 
 
-# ================= ROUTES =================
+# ================= STARTUP =================
+@app.on_event("startup")
+def startup_event():
+    print("🚀 Starting server...")
+    download_models_once()
+
+
+# ================= HEALTH =================
 @app.get("/")
 def home():
-    return {
-        "message": "Deepfake API running 🚀",
-        "endpoints": [
-            "/predict/image",
-            "/predict/video",
-            "/predict/live"
-        ]
-    }
+    return {"message": "API running 🚀"}
 
 
 @app.get("/health")
@@ -124,7 +119,6 @@ def health():
 async def predict_image(file: UploadFile = File(...)):
     try:
         model, face_net, threshold = get_eff_model()
-
         contents = await file.read()
 
         result = predict_from_bytes(
@@ -150,7 +144,6 @@ async def predict_image(file: UploadFile = File(...)):
 async def predict_video(file: UploadFile = File(...)):
     try:
         tf_model = get_tf_model()
-
         contents = await file.read()
 
         temp_path = "temp.mp4"
@@ -202,7 +195,6 @@ async def predict_live(file: UploadFile = File(...)):
         tf_model = get_tf_model()
 
         contents = await file.read()
-
         np_arr = np.frombuffer(contents, np.uint8)
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
