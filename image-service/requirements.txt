@@ -2,8 +2,8 @@ fastapi
 uvicorn[standard]
 python-multipart
 
-torch==2.2.2
-torchvision==0.17.2
+torch
+torchvision
 timm
 
 opencv-python-headless
