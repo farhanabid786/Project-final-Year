@@ -1,8 +1,11 @@
 """
-Render-ready FastAPI with lazy loading
-Supports:
-- Image → EfficientNet
-- Video/Live → TensorFlow
+main.py — Render-ready Deepfake API
+
+✔ Lazy loading (no crash on startup)
+✔ Auto-download models from Google Drive
+✔ Supports:
+   - Image → EfficientNet
+   - Video/Live → TensorFlow
 """
 
 import os
@@ -17,20 +20,46 @@ from fastapi.middleware.cors import CORSMiddleware
 from model import load_model, DEFAULT_MODEL_CONFIG
 from inference import load_face_net, predict_from_bytes
 
-# ================= PATHS =================
+import gdown
+
+
+# ================= PATH SETUP =================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-EFF_MODEL_PATH = os.path.join(BASE_DIR, "models", "best_model_v3.pth")
-TF_MODEL_PATH = os.path.join(BASE_DIR, "models", "deepfake_model.h5")
+MODEL_DIR = os.path.join(BASE_DIR, "models")
+os.makedirs(MODEL_DIR, exist_ok=True)
+
+EFF_MODEL_PATH = os.path.join(MODEL_DIR, "best_model_v3.pth")
+TF_MODEL_PATH = os.path.join(MODEL_DIR, "deepfake_model.h5")
+
 DETECTOR_DIR = os.path.join(BASE_DIR, "face_detector")
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# ================= GLOBALS (LAZY LOAD) =================
+
+# ================= GOOGLE DRIVE LINKS =================
+EFF_URL = "https://drive.google.com/uc?id=1xigFpgBhZrlwRn4FWX8LZaf7_Rq5E7G3"
+TF_URL  = "https://drive.google.com/uc?id=1xwuOR6UsC9bEMoMZgk2slrtXMlrLZYcB"
+
+
+# ================= GLOBAL VARIABLES =================
 eff_model = None
 face_net = None
 threshold = None
 tf_model = None
+
+
+# ================= DOWNLOAD MODELS =================
+def download_models():
+    if not os.path.exists(EFF_MODEL_PATH):
+        print("⬇️ Downloading EfficientNet model...")
+        gdown.download(EFF_URL, EFF_MODEL_PATH, quiet=False)
+
+    if not os.path.exists(TF_MODEL_PATH):
+        print("⬇️ Downloading TensorFlow model...")
+        gdown.download(TF_URL, TF_MODEL_PATH, quiet=False)
+
+    print("✅ Models ready")
 
 
 # ================= LAZY LOADERS =================
@@ -38,6 +67,7 @@ def get_eff_model():
     global eff_model, face_net, threshold
 
     if eff_model is None:
+        download_models()
         print("🔄 Loading EfficientNet...")
         eff_model, threshold = load_model(EFF_MODEL_PATH, DEVICE)
         face_net = load_face_net(DETECTOR_DIR)
@@ -50,10 +80,11 @@ def get_tf_model():
     global tf_model
 
     if tf_model is None:
+        download_models()
         print("🔄 Loading TensorFlow model...")
         from tensorflow.keras.models import load_model
         tf_model = load_model(TF_MODEL_PATH, compile=False)
-        print("✅ TensorFlow model loaded")
+        print("✅ TensorFlow loaded")
 
     return tf_model
 
@@ -105,7 +136,10 @@ async def predict_image(file: UploadFile = File(...)):
             use_amp=DEFAULT_MODEL_CONFIG["use_amp"]
         )
 
-        return {"model": "EfficientNet", "result": result}
+        return {
+            "model": "EfficientNet",
+            "result": result
+        }
 
     except Exception as e:
         raise HTTPException(500, str(e))
