@@ -154,7 +154,9 @@ def get_model():
     if model is None:
         with lock:
             if model is None:
-                download_model(MODEL_PATH, MODEL_URL)
+                if not os.path.exists(MODEL_PATH):
+                    download_model(MODEL_PATH, MODEL_URL)
+
                 model_loaded, threshold_loaded = load_model(MODEL_PATH, DEVICE)
                 face_net_loaded = load_face_net(DETECTOR_DIR)
 
@@ -163,13 +165,6 @@ def get_model():
                 face_net = face_net_loaded
 
     return model, face_net, threshold
-
-
-def preload():
-    try:
-        get_model()
-    except Exception:
-        pass
 
 
 app = FastAPI()
@@ -183,11 +178,6 @@ app.add_middleware(
 )
 
 
-@app.on_event("startup")
-def startup():
-    threading.Thread(target=preload).start()
-
-
 @app.get("/")
 def root():
     return {"status": "running"}
@@ -195,11 +185,7 @@ def root():
 
 @app.get("/health")
 def health():
-    return {
-        "status": "ok",
-        "device": str(DEVICE),
-        "model_loaded": model is not None
-    }
+    return {"status": "ok"}
 
 
 @app.post("/predict")
