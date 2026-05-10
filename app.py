@@ -932,16 +932,16 @@ async def live_test_page():
 </html>"""
     return HTMLResponse(content=html)
 
-# # =============================================================================
-# #  ENTRY POINT
-# # =============================================================================
+# =============================================================================
+#  ENTRY POINT
+# =============================================================================
 
-# if __name__ == "__main__":
-#     import uvicorn
-#     uvicorn.run(
-#         "app:app",
-#         host    = "0.0.0.0",
-#         port    = PORT,
-#         reload  = False,   
-#         workers = 1,       
-#     )
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app:app",
+        host    = "0.0.0.0",
+        port    = PORT,
+        reload  = False,
+        workers = 1,
+    )

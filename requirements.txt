@@ -10,9 +10,9 @@
 #       source venv/bin/activate          # Linux / macOS
 #       venv\Scripts\activate             # Windows
 #
-#  2a. GPU  (CUDA 12.x — RTX 2050 / any NVIDIA card):
-#       pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
-#       pip install -r requirements.txt
+#  2a. GPU  (NVIDIA CUDA):
+#       Follow requirements-gpu.txt for GPU-specific torch/torchvision install
+#       then install the remaining dependencies.
 #
 #  2b. CPU only:
 #       pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
