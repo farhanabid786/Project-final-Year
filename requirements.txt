@@ -1,0 +1,60 @@
+# ══════════════════════════════════════════════════════════════════
+#  DeepFake Detection API — requirements.txt
+#  Compatible: Python 3.10 / 3.11 / 3.12 / 3.13  |  GPU + CPU
+# ══════════════════════════════════════════════════════════════════
+#
+#  INSTALLATION INSTRUCTIONS
+#  ──────────────────────────
+#  1. Create a virtual environment (recommended):
+#       python -m venv venv
+#       source venv/bin/activate          # Linux / macOS
+#       venv\Scripts\activate             # Windows
+#
+#  2a. GPU  (CUDA 12.x — RTX 2050 / any NVIDIA card):
+#       pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+#       pip install -r requirements.txt
+#
+#  2b. CPU only:
+#       pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#       pip install -r requirements.txt
+#
+#  3. Run:
+#       python app.py
+#       # or:
+#       uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+# ══════════════════════════════════════════════════════════════════
+
+# ── Web framework ──────────────────────────────────────────────────
+fastapi>=0.111.0,<1.0.0
+uvicorn[standard]>=0.29.0,<1.0.0
+python-multipart>=0.0.9          # Required for UploadFile / Form
+
+# ── Data validation ────────────────────────────────────────────────
+pydantic>=2.7.0,<3.0.0
+
+# ── Computer vision ────────────────────────────────────────────────
+opencv-python-headless>=4.9.0    # headless = no Qt/GTK dependency
+Pillow>=10.3.0,<12.0.0
+
+# ── Numerical ──────────────────────────────────────────────────────
+numpy>=1.26.0,<3.0.0
+
+# ── NOTE: PyTorch is intentionally excluded from this file.
+#    Install torch + torchvision FIRST with the correct index URL
+#    for your hardware (see instructions above), then run:
+#    pip install -r requirements.txt
+#
+#    Minimum versions needed at runtime:
+#      torch>=2.2.0
+#      torchvision>=0.17.0
+# ──────────────────────────────────────────────────────────────────
+
+# ── Optional — ONNX export / faster CPU inference ──────────────────
+# onnx>=1.16.0
+# onnxruntime>=1.18.0            # CPU
+# onnxruntime-gpu>=1.18.0        # GPU (install one or the other)
+
+# ── Dev / testing (optional) ───────────────────────────────────────
+# httpx>=0.27.0                  # For pytest integration tests
+# pytest>=8.0.0
+# pytest-asyncio>=0.23.0
