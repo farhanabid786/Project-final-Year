@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+
+# env files
+.env
+.env.*
+
+# uploads
+src/uploads/*
+!src/uploads/.gitkeep
+
+# logs
+*.log
+logs/
+
+# build
+dist/
+build/
+
+# cache
+.cache/
+tmp/
+
+# IDE
+.vscode/
+.idea/
+
+# Python (FastAPI)
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# AI model files
+checkpoints/
+models/
+*.pth
+*.pt
