@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+python-multipart
+
+torch
+torchvision
+timm
+
+opencv-python-headless
+numpy
+Pillow
+requests
