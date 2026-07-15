@@ -1,4 +1,4 @@
-# DrishtiVision — AI-Powered Deepfake Detection System
+# DrishtiVision — AI Powered Deepfake Detection System
 
 > An end-to-end deepfake detection platform capable of analyzing images, videos, and live webcam feeds using state-of-the-art deep learning models, built as a final-year capstone project.
 
